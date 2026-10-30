@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Pump.fun AI World — Live</title>
+<style>
+body { font-family: system-ui, monospace; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+h1 { color: #58a6ff; }
+.warn { background: #f8514922; border: 1px solid #f85149; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+#feed { height: 70vh; overflow-y: auto; background: #161b22; padding: 12px; border-radius: 6px; }
+.item { margin: 4px 0; padding: 6px; border-bottom: 1px solid #30363d; }
+.sym { color: #7ee787; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Pump.fun AI World — Live Feed</h1>
+<div class="warn"><strong>High risk.</strong> Most tokens go to zero. Paper trade first.</div>
+<p>Status: <span id="status">Connecting…</span></p>
+<div id="feed"></div>
+<script>
+const feed = document.getElementById("feed");
+const status = document.getElementById("status");
+let ws;
+function add(html) {
+  const d = document.createElement("div");
+  d.className = "item";
+  d.innerHTML = `<small>${new Date().toLocaleTimeString()}</small> ${html}`;
+  feed.prepend(d);
+  if (feed.children.length > 150) feed.lastChild.remove();
+}
+function connect() {
+  ws = new WebSocket("wss://pumpportal.fun/api/data");
+  ws.onopen = () => {
+    status.textContent = "Connected";
+    ws.send(JSON.stringify({method: "subscribeNewToken"}));
+    add("Subscribed to new tokens");
+  };
+  ws.onmessage = (e) => {
+    try {
+      const m = JSON.parse(e.data);
+      if (m.mint && m.symbol) {
+        add(`<span class="sym">${m.symbol}</span> ${m.name || ""} — <a href="https://pump.fun/${m.mint}" target="_blank">${m.mint.slice(0,8)}…</a>`);
+      }
+    } catch {}
+  };
+  ws.onclose = () => { status.textContent = "Disconnected — retrying"; setTimeout(connect, 5000); };
+  ws.onerror = () => status.textContent = "Error";
+}
+connect();
+</script>
+</body>
+</html>
